@@ -1,0 +1,13 @@
+{
+  "name": "P.Game",
+  "short_name": "P.Game",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/qvm6vwh7/img-5993.jpg",
+      "sizes": "639x640",
+      "type": "image/jpeg"
+    }
+  ],
+  "start_url": "index.html",
+  "display": "standalone"
+}

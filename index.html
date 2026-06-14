@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>Семён AI — Хто Ошибка</title>
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Семён%20AI%22,%22short_name%22:%22Semion%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22theme_color%22:%22%23000000%22,%22background_color%22:%22%23000000%22,%22icons%22:[{%22src%22:%22https://i.ibb.co/Dfq5tw7J/IMG-6056.jpg%22,%22sizes%22:%22192x192%22,%22type%22:%22image/jpeg%22}]}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/Dfq5tw7J/IMG-6056.jpg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background: #000;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: #000;
+        }
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #000;
+        }
+        .hamburger {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 30px;
+            width: 44px;
+            align-items: center;
+        }
+        .hamburger span {
+            width: 22px;
+            height: 2px;
+            background: white;
+            border-radius: 2px;
+        }
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            scroll-behavior: smooth;
+        }
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+            animation: fadeSlide 0.2s ease;
+        }
+        .user-message { align-self: flex-end; }
+        .assistant-message { align-self: flex-start; }
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 20px;
+            word-break: break-word;
+            white-space: pre-wrap;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+        .user-message .bubble {
+            background: #1e2a3a;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .assistant-message .bubble {
+            background: #2c2c2e;
+            color: #eaeaea;
+            border-bottom-left-radius: 4px;
+        }
+        .error-bubble {
+            background: #4a1515 !important;
+            border-left: 3px solid #ff5555;
+            color: #ffb3b3;
+            font-family: monospace;
+        }
+        .thinking-wrapper {
+            background: #2c2c2e;
+            border-radius: 20px;
+            padding: 10px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: fit-content;
+        }
+        .rotating-icon {
+            display: inline-block;
+            width: 28px;
+            text-align: center;
+            font-size: 22px;
+            animation: spinFade 1.2s infinite ease-in-out;
+        }
+        @keyframes spinFade {
+            0% { transform: rotate(0deg) scale(1); opacity: 0.6; }
+            50% { transform: rotate(180deg) scale(1.2); opacity: 1; }
+            100% { transform: rotate(360deg) scale(1); opacity: 0.6; }
+        }
+        .input-container {
+            background: #d32f2f;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 40px;
+            margin: 12px;
+            margin-top: 4px;
+        }
+        .input-field {
+            flex: 1;
+            background: transparent;
+            border: none;
+            font-size: 16px;
+            color: black;
+            outline: none;
+            font-weight: 500;
+            padding: 12px 6px;
+            font-family: inherit;
+            resize: none;
+            max-height: 100px;
+        }
+        .input-field::placeholder {
+            color: #2c2c2e;
+            font-weight: 500;
+        }
+        .send-btn {
+            background: #d32f2f;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .send-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .send-icon {
+            width: 20px;
+            height: 20px;
+            border: solid black;
+            border-width: 0 3px 3px 0;
+            transform: rotate(-135deg);
+            margin-bottom: 2px;
+        }
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0c;
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            padding: 20px 16px;
+        }
+        .side-menu.open {
+            transform: translateX(0);
+        }
+        .menu-header {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .close-menu {
+            background: #d32f2f;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: black;
+            cursor: pointer;
+            border: none;
+        }
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: 30px 0 30px 0;
+        }
+        .menu-action {
+            background: #1f1f24;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 50px;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+        .chat-history-title {
+            color: #aaa;
+            margin: 20px 0 10px 0;
+            font-size: 14px;
+        }
+        .chat-history-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chat-item {
+            background: #1c1c1e;
+            padding: 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            color: white;
+            font-weight: 500;
+        }
+        .reg-bottom {
+            position: fixed;
+            bottom: 28px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            z-index: 60;
+            pointer-events: none;
+        }
+        .reg-btn-blue {
+            background: #1e88e5;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 60px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            pointer-events: auto;
+        }
+        .modal-reg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .modal-reg.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .reg-card {
+            background: #1e1e1e;
+            width: 280px;
+            border-radius: 32px;
+            padding: 28px 20px;
+            position: relative;
+            text-align: center;
+        }
+        .reg-card h3 {
+            color: white;
+            margin-bottom: 20px;
+        }
+        .nick-input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 40px;
+            border: none;
+            background: #2c2c2e;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .close-cross {
+            position: absolute;
+            right: 14px;
+            top: 14px;
+            background: #d32f2f;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .orange-reg {
+            background: #f57c00;
+            border: none;
+            padding: 12px;
+            border-radius: 40px;
+            width: 100%;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .rainbow-text {
+            background: linear-gradient(90deg, #ff7eb3, #ff758c, #f5b042, #3bc9db);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="top-bar">
+        <div class="hamburger" id="menuBtn">
+            <span></span><span></span><span></span>
+        </div>
+        <div></div>
+    </div>
+    <div class="messages-area" id="messagesContainer"></div>
+    <div class="input-container">
+        <textarea rows="1" class="input-field" id="messageInput" placeholder="Спросите Семёна..."></textarea>
+        <button class="send-btn" id="sendBtn"><div class="send-icon"></div></button>
+    </div>
+</div>
+
+<div class="reg-bottom" id="regBottom">
+    <button class="reg-btn-blue" id="openRegBtn">Создать аккаунт</button>
+</div>
+
+<div id="regModal" class="modal-reg">
+    <div class="reg-card">
+        <div class="close-cross" id="closeRegModal">✕</div>
+        <h3>Создайте аккаунт</h3>
+        <input type="text" id="nickInput" class="nick-input" placeholder="Ваш ник" autocomplete="off">
+        <button id="registrBtn" class="orange-reg">Регистрация</button>
+    </div>
+</div>
+
+<div id="sideMenu" class="side-menu">
+    <div class="menu-header">
+        <button class="close-menu" id="closeMenuBtn">✕</button>
+    </div>
+    <div class="menu-buttons">
+        <button class="menu-action" id="menuNewChatBtn"><span class="icon">📓</span> Новый чат</button>
+        <button class="menu-action" id="menuAccountBtn"><span class="icon">👤</span> Мой аккаунт</button>
+    </div>
+    <div class="chat-history-title">История чатов</div>
+    <div class="chat-history-list" id="chatHistoryList"></div>
+</div>
+
+<script>
+    // ========== GEMINI API КЛЮЧ РАЗБИТ НА 3 ЧАСТИ ==========
+    const keyPart1 = "AQ.Ab8RN6J0vM8RIzuToYfu7JJU3SgqxHKnE";
+    const keyPart2 = "1P6Ik0znDdxxOyQZg";
+    const keyPart3 = "";
+    const API_KEY = keyPart1 + keyPart2 + keyPart3;
+    const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
+
+    let currentUser = localStorage.getItem("semion_user") || null;
+    let allChats = JSON.parse(localStorage.getItem("semion_chats")) || [];
+    let activeChatId = localStorage.getItem("semion_activeChat") || null;
+    let isWaiting = false;
+    let thinkingElem = null;
+    let animInterval = null;
+
+    const messagesDiv = document.getElementById('messagesContainer');
+    const msgInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendBtn');
+    const regBottomDiv = document.getElementById('regBottom');
+    const regModal = document.getElementById('regModal');
+    const openRegBtn = document.getElementById('openRegBtn');
+    const closeRegCross = document.getElementById('closeRegModal');
+    const registrBtn = document.getElementById('registrBtn');
+    const nickInputField = document.getElementById('nickInput');
+    const menuBtn = document.getElementById('menuBtn');
+    const sideMenuDiv = document.getElementById('sideMenu');
+    const closeMenuBtn = document.getElementById('closeMenuBtn');
+    const menuNewChat = document.getElementById('menuNewChatBtn');
+    const menuAccount = document.getElementById('menuAccountBtn');
+    const chatHistoryContainer = document.getElementById('chatHistoryList');
+
+    function disableSend(disabled) {
+        if (disabled) {
+            sendButton.classList.add('disabled');
+        } else {
+            sendButton.classList.remove('disabled');
+        }
+    }
+
+    function persistData() {
+        localStorage.setItem("semion_user", currentUser);
+        localStorage.setItem("semion_chats", JSON.stringify(allChats));
+        localStorage.setItem("semion_activeChat", activeChatId);
+    }
+
+    function scrollToBottom() {
+        setTimeout(() => messagesDiv.scrollTop = messagesDiv.scrollHeight, 50);
+    }
+
+    function renderActiveChat() {
+        if (!activeChatId) {
+            messagesDiv.innerHTML = '<div style="color:gray;text-align:center;">Начните новый чат через меню</div>';
+            return;
+        }
+        const chat = allChats.find(c => c.id === activeChatId);
+        if (!chat) return;
+        messagesDiv.innerHTML = '';
+        chat.messages.forEach(msg => {
+            const msgEl = document.createElement('div');
+            msgEl.className = `message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`;
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            if (msg.isError) bubble.classList.add('error-bubble');
+            bubble.innerText = msg.text;
+            msgEl.appendChild(bubble);
+            messagesDiv.appendChild(msgEl);
+        });
+        scrollToBottom();
+    }
+
+    function addMessageToActive(role, text, isError = false) {
+        const chat = allChats.find(c => c.id === activeChatId);
+        if (!chat) return;
+        chat.messages.push({ role, text, time: Date.now(), isError });
+        if (chat.messages.length === 1 && role === 'user' && !isError) {
+            let title = text.length > 28 ? text.slice(0,28)+'...' : text;
+            chat.title = title;
+        }
+        persistData();
+        renderActiveChat();
+    }
+
+    async function typeMessage(text, isError = false) {
+        const tempDiv = document.createElement('div');
+        tempDiv.className = 'message assistant-message';
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        if (isError) bubble.classList.add('error-bubble');
+        tempDiv.appendChild(bubble);
+        messagesDiv.appendChild(tempDiv);
+        let i = 0;
+        return new Promise((resolve) => {
+            function addChar() {
+                if (i < text.length) {
+                    bubble.innerText += text[i];
+                    i++;
+                    scrollToBottom();
+                    setTimeout(addChar, 18 + Math.random() * 15);
+                } else {
+                    resolve();
+                }
+            }
+            addChar();
+        });
+    }
+
+    function startThinkingAnimation() {
+        if (thinkingElem) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'assistant-message';
+        const inner = document.createElement('div');
+        inner.className = 'thinking-wrapper';
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'rotating-icon';
+        iconSpan.innerText = '⚡️';
+        inner.appendChild(iconSpan);
+        inner.appendChild(document.createTextNode(' Семён думает...'));
+        wrapper.appendChild(inner);
+        messagesDiv.appendChild(wrapper);
+        scrollToBottom();
+        thinkingElem = { wrapper, iconSpan };
+        let step = 0;
+        if (animInterval) clearInterval(animInterval);
+        animInterval = setInterval(() => {
+            if (!thinkingElem) return;
+            step++;
+            if (step === 1) thinkingElem.iconSpan.innerText = '🧢';
+            else if (step === 2) thinkingElem.iconSpan.innerText = '🎮';
+            else if (step >= 3) {
+                clearInterval(animInterval);
+                animInterval = null;
+            }
+        }, 6000);
+    }
+
+    function stopThinkingAnimation() {
+        if (animInterval) { clearInterval(animInterval); animInterval = null; }
+        if (thinkingElem) {
+            thinkingElem.wrapper.remove();
+            thinkingElem = null;
+        }
+    }
+
+    function formatErrorDetails(err) {
+        let details = "Неизвестная ошибка";
+        if (typeof err === 'string') details = err;
+        else if (err.message) details = err.message;
+        else if (err.statusText) details = `${err.status} ${err.statusText}`;
+        else if (err.status) details = `HTTP ${err.status}`;
+        
+        if (details.includes("Failed to fetch") || details.includes("NetworkError")) {
+            details = "Нет соединения с интернетом или API недоступен";
+        } else if (details.includes("API key")) {
+            details = "Неверный или истёкший API ключ Gemini";
+        } else if (details.includes("quota") || details.includes("exceeded")) {
+            details = "Квота запросов исчерпана. Подождите немного.";
+        }
+        return `Хто Ошибка: ${details}`;
+    }
+
+    async function askGemini(userText) {
+        const chat = allChats.find(c => c.id === activeChatId);
+        const lastMsgs = chat ? chat.messages.slice(-8).map(m => `${m.role === 'user' ? 'Юзер' : 'Семён'}: ${m.text}`).join('\n') : '';
+        const prompt = `Ты — Семён, дружелюбный AI-помощник. Отвечай кратко, понятно. История:\n${lastMsgs}\nПользователь: ${userText}\nСемён:`;
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 25000);
+            const response = await fetch(`${GEMINI_URL}?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                let errorText = `HTTP ${response.status} ${response.statusText}`;
+                try {
+                    const errJson = await response.json();
+                    if (errJson.error && errJson.error.message) errorText = errJson.error.message;
+                } catch(e) {}
+                throw new Error(errorText);
+            }
+            const data = await response.json();
+            if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                return { success: true, text: data.candidates[0].content.parts[0].text };
+            } else {
+                throw new Error("Пустой или некорректный ответ от Gemini");
+            }
+        } catch (err) {
+            let errorMessage = formatErrorDetails(err);
+            return { success: false, errorText: errorMessage };
+        }
+    }
+
+    async function executeSend(question) {
+        if (!question.trim()) return;
+        if (!currentUser) {
+            alert("Сначала создайте аккаунт через синюю кнопку");
+            return;
+        }
+        if (!activeChatId) {
+            createNewChatInternal();
+        }
+        addMessageToActive('user', question);
+        msgInput.value = '';
+        msgInput.style.height = 'auto';
+        if (isWaiting) return;
+        isWaiting = true;
+        disableSend(true);
+        startThinkingAnimation();
+        
+        const result = await askGemini(question);
+        stopThinkingAnimation();
+        
+        if (result.success) {
+            await typeMessage(result.text);
+            addMessageToActive('assistant', result.text);
+        } else {
+            await typeMessage(result.errorText, true);
+            addMessageToActive('assistant', result.errorText, true);
+        }
+        
+        isWaiting = false;
+        disableSend(false);
+    }
+
+    async function handleSendMessage() {
+        const text = msgInput.value.trim();
+        if (!text) return;
+        if (isWaiting) return;
+        await executeSend(text);
+    }
+
+    function createNewChatInternal() {
+        const newId = Date.now().toString();
+        const newChat = {
+            id: newId,
+            title: "Новый диалог",
+            messages: []
+        };
+        allChats.unshift(newChat);
+        activeChatId = newId;
+        persistData();
+        renderChatHistoryMenu();
+        if (currentUser) {
+            const greet = `Здравствуйте, ${currentUser}! Я Семён, задавайте любые вопросы.`;
+            addMessageToActive('assistant', greet);
+        }
+        renderActiveChat();
+    }
+
+    function registerUser(nick) {
+        if (!nick.trim()) return false;
+        currentUser = nick.trim();
+        persistData();
+        regBottomDiv.style.display = 'none';
+        if (!activeChatId || allChats.length === 0) {
+            createNewChatInternal();
+        } else {
+            addMessageToActive('assistant', `С возвращением, ${currentUser}! Рад помочь.`);
+        }
+        renderChatHistoryMenu();
+        return true;
+    }
+
+    function renderChatHistoryMenu() {
+        if (!chatHistoryContainer) return;
+        chatHistoryContainer.innerHTML = '';
+        if (allChats.length === 0) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.innerText = 'Нет чатов. Создайте через меню.';
+            emptyDiv.style.color = '#aaa';
+            emptyDiv.style.padding = '12px';
+            chatHistoryContainer.appendChild(emptyDiv);
+            return;
+        }
+        allChats.forEach(chat => {
+            const item = document.createElement('div');
+            item.className = 'chat-item';
+            item.innerText = chat.title || 'Чат';
+            item.addEventListener('click', () => {
+                activeChatId = chat.id;
+                persistData();
+                renderActiveChat();
+                sideMenuDiv.classList.remove('open');
+            });
+            chatHistoryContainer.appendChild(item);
+        });
+    }
+
+    sendButton.addEventListener('click', handleSendMessage);
+    msgInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
+        }
+    });
+    msgInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    });
+
+    openRegBtn.addEventListener('click', () => regModal.classList.add('active'));
+    closeRegCross.addEventListener('click', () => regModal.classList.remove('active'));
+    registrBtn.addEventListener('click', () => {
+        const nick = nickInputField.value.trim();
+        if (nick) {
+            registerUser(nick);
+            regModal.classList.remove('active');
+            nickInputField.value = '';
+        } else alert("Введите ник!");
+    });
+
+    menuBtn.addEventListener('click', () => {
+        renderChatHistoryMenu();
+        sideMenuDiv.classList.add('open');
+    });
+    closeMenuBtn.addEventListener('click', () => sideMenuDiv.classList.remove('open'));
+    menuNewChat.addEventListener('click', () => {
+        if (!currentUser) { alert("Сначала зарегистрируйтесь"); return; }
+        createNewChatInternal();
+        sideMenuDiv.classList.remove('open');
+    });
+    menuAccount.addEventListener('click', () => {
+        if (currentUser) alert(`Ваш аккаунт: ${currentUser}`);
+        else alert("Аккаунт не создан. Нажмите синюю кнопку внизу.");
+        sideMenuDiv.classList.remove('open');
+    });
+
+    if (currentUser) {
+        regBottomDiv.style.display = 'none';
+        if (!activeChatId || allChats.length === 0) {
+            createNewChatInternal();
+        } else {
+            renderActiveChat();
+        }
+    } else {
+        regBottomDiv.style.display = 'flex';
+        if (allChats.length === 0) {
+            messagesDiv.innerHTML = '<div style="color:#aaa;text-align:center;">Создайте аккаунт, чтобы начать общение с Семёном 💬</div>';
+        } else {
+            if (activeChatId) renderActiveChat();
+        }
+    }
+    renderChatHistoryMenu();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "Name": "Семён AI",
+  "Short_name": "Семён AI",
+  "Description": "Приложение семёна аи",
+  "Start_url": "index.html",
+  "Display": "standalone",
+  "Background_color": "#ffffff",
+  "Theme_color": "#000000",
+  "Icons": [
+    {
+      "Src": "https://i.ibb.co/Dfq5tw7J/img-6056.jpg",
+      "Sizes": "512x512",
+      "Type": "image/jpeg",
+      "Purpose": "any maskable"
+    }
+  ]
+}
